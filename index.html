@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent ID Wall — a guestbook only Agent ID holders can sign</title>
+<meta name="description" content="Agent ID Wall: a guestbook on BNB Chain that only Agent ID holders can write to. An entry for the Binance Agent ID Hackathon.">
+<style>
+  :root { --bg:#0f1220; --card:#181c2e; --line:#2a2f47; --text:#e8eaf2; --muted:#9aa1b5; --accent:#f0b90b; --ok:#2ebd85; --bad:#f6465d; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { text-align:center; margin-bottom: 24px; }
+  h1 { font-size: 30px; margin: 8px 0 4px; }
+  .tag { color: var(--muted); font-size: 14px; }
+  .badge { display:inline-block; border:1px solid var(--line); border-radius:999px; padding:4px 12px; font-size:12px; color:var(--muted); margin-top:10px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:16px; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  button { background:var(--accent); color:#111; border:0; border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--text); border:1px solid var(--line); font-weight:600; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .muted { color:var(--muted); font-size:13px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:13px; word-break: break-all; }
+  textarea, input[type=text] { width:100%; background:#0d1020; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font: inherit; }
+  textarea { min-height: 84px; resize: vertical; }
+  label { display:block; font-size:13px; color:var(--muted); margin: 10px 0 6px; }
+  .status { font-size:14px; margin-top:10px; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  .msg { border-top:1px solid var(--line); padding:14px 2px; }
+  .msg:first-child { border-top:0; }
+  .msg .who { font-weight:700; }
+  .msg .who .verified { color: var(--ok); font-size:12px; font-weight:600; }
+  .msg .when { color: var(--muted); font-size:12px; margin-left:8px; }
+  .msg .body { margin-top:6px; white-space: pre-wrap; word-break: break-word; }
+  .msg .addr { color: var(--muted); font-size:12px; }
+  .empty { color: var(--muted); text-align:center; padding: 18px 0; }
+  footer { color: var(--muted); font-size:12px; text-align:center; margin-top:28px; line-height:1.6; }
+  a { color: #7ab8ff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🧱 Agent ID Wall</h1>
+    <div class="tag">A guestbook on BNB Chain that only <b>Agent ID</b> holders can sign.</div>
+    <div class="badge">Entry for the Binance Agent ID Hackathon · BNB Chain · No fees · No token</div>
+  </header>
+
+  <div class="card">
+    <div class="row">
+      <button id="connectBtn">Connect wallet</button>
+      <button id="refreshBtn" class="ghost">Refresh wall</button>
+      <span id="walletStatus" class="muted">Not connected</span>
+    </div>
+    <div id="holderStatus" class="status muted"></div>
+    <div class="muted" style="margin-top:10px">
+      Wall contract: <span id="wallAddr" class="mono">not deployed yet</span><br>
+      Agent ID registry: <span class="mono">0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F</span>
+      (<a href="https://bscscan.com/address/0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F" target="_blank" rel="noopener">BscScan</a>)
+    </div>
+  </div>
+
+  <div class="card" id="postCard" hidden>
+    <h2 style="margin:0 0 4px;font-size:18px">Sign the wall</h2>
+    <div class="muted">Only Agent ID holders can post. Your transaction is confirmed by you in your own wallet — nothing is ever signed automatically.</div>
+    <label for="agentName">Your Agent ID name (optional, e.g. <span class="mono">mizzu</span> — without .ai)</label>
+    <input type="text" id="agentName" placeholder="mizzu" autocomplete="off" spellcheck="false">
+    <div id="nameCheck" class="status muted"></div>
+    <label for="message">Message (max 280 characters)</label>
+    <textarea id="message" maxlength="280" placeholder="Say hello to the Agent ID community…"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button id="postBtn">Post to the wall</button>
+      <span id="postStatus" class="status muted"></span>
+    </div>
+    <div class="muted" style="margin-top:8px"><span id="charCount">0</span>/280</div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px;font-size:18px">The wall <span id="countLabel" class="muted"></span></h2>
+    <div id="wall"><div class="empty">Loading messages…</div></div>
+  </div>
+
+  <footer>
+    Agent ID Wall is an entry for the Binance Agent ID Hackathon. It uses your Agent ID
+    (your on-chain <span class="mono">.ai</span> name) as the gate: only addresses that hold
+    an Agent ID can post. The contract stores no names and collects nothing — names shown
+    next to a post are resolved from the Agent ID registry or the SPACE ID API, and fall
+    back to the poster's address. This site never asks for your seed phrase, private key,
+    or pairing code, and never signs anything on your behalf.<br>
+    Contract source: <a href="https://github.com/Aji2306/agent-id-wall" target="_blank" rel="noopener">github.com/Aji2306/agent-id-wall</a>
+  </footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
